@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32428.217
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "rs232-auto", "rs232-auto.vbproj", "{40C8B96F-287A-4478-BDF4-7D49EF78C7DA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{40C8B96F-287A-4478-BDF4-7D49EF78C7DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40C8B96F-287A-4478-BDF4-7D49EF78C7DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40C8B96F-287A-4478-BDF4-7D49EF78C7DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40C8B96F-287A-4478-BDF4-7D49EF78C7DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0574F591-19EC-4C39-A3D0-60C92DDB9E0A}
+	EndGlobalSection
+EndGlobal

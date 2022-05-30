@@ -1,0 +1,194 @@
+C51 COMPILER V8.08   UART                                                                  05/30/2022 11:03:26 PAGE 1   
+
+
+C51 COMPILER V8.08, COMPILATION OF MODULE UART
+OBJECT MODULE PLACED IN uart.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE uart.c BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          // uart_1.c
+   2          #include"at89x52.h"
+   3          #include <intrins.h>
+   4          
+   5          typedef  unsigned char  uchar;
+   6          typedef  unsigned int  uint;
+   7          
+   8          #define RCLK  P1_0
+   9          #define SRCLK P1_1
+  10          #define SER   P1_2
+  11          #define RCLK7   P3_5
+  12          #define SRCLK7  P3_6
+  13          #define SER7  P3_7
+  14          
+  15          uchar  seg[]={0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x77, 0x7c, 0x39, 0x5e, 0x79, 0x
+             -71};
+  16          uchar  dig[]={0xBF, 0xDF, 0xEF, 0xFB, 0xFD, 0xFE};  // c7,c6,c5,c3,c2,c1
+  17          
+  18          // 選擇顯示元件fc:7SEG fb:ledbar f7:led f3:dotmatrix
+  19          void DisplaySelect(uchar val_1)
+  20          {
+  21   1        uchar i;
+  22   1        for (i=0;i<8;i++)
+  23   1        {
+  24   2          SRCLK = 0;       // 串列移位時脈輸出低電位，可改變數據狀態
+  25   2          if (val_1 & 0x80)  // 高位元先移入
+  26   2            SER = 1;
+  27   2          else
+  28   2            SER = 0;
+  29   2          SRCLK = 1;       // 串列移位時脈輸出高電位，數據移入
+  30   2          val_1 <<= 1;     // 輸入數據左移一位
+  31   2        }
+  32   1        RCLK = 0;        // 移位暫存器鎖存至輸出正反器
+  33   1        RCLK = 1;        // 上升緣鎖存輸出
+  34   1      }
+  35          
+  36          // 七段顯示器位選輸出
+  37          void DigitSelect(uchar val_2)
+  38          {
+  39   1        uchar i;
+  40   1        for (i=0;i<8;i++)
+  41   1        {
+  42   2          SRCLK7 = 0;      // 串列移位時脈輸出低電位，可改變數據狀態
+  43   2          if (val_2 & 0x80)  // 高位元先移入
+  44   2            SER7 = 1;
+  45   2          else
+  46   2            SER7 = 0;
+  47   2          SRCLK7 = 1;      // 串列移位時脈輸出高電位，數據移入
+  48   2          val_2 <<= 1;     // 輸入數據左移一位
+  49   2        }
+  50   1        RCLK7 = 0;         // 移位暫存器鎖存至輸出正反器
+  51   1        RCLK7 = 1;         // 上升緣鎖存輸出
+  52   1      }
+  53          
+  54          // 延遲1mS函數 (OSC=12MHz)
+C51 COMPILER V8.08   UART                                                                  05/30/2022 11:03:26 PAGE 2   
+
+  55          void delay_1mS(uchar t)
+  56          {
+  57   1        uchar i,j;
+  58   1        do {
+  59   2           i=4;
+  60   2           do {
+  61   3               j=82;
+  62   3             do {
+  63   4                 _nop_();
+  64   4             } while(--j);  
+  65   3           } while (--i);
+  66   2        } while(--t);
+  67   1      }
+  68          
+  69          uchar flag = 0;
+  70          char  keyval;
+  71          
+  72          // 自主機收到一個串列數據後再傳送給主機
+  73          void main(void)
+  74          {
+  75   1        uchar key_row, key_col, key;
+  76   1        DisplaySelect(0xfc);  // 選擇7SEG元件顯示
+  77   1        DigitSelect(dig[0]);  // 選擇7SEG LED2-C7位顯示
+  78   1        P2 = seg[0];
+  79   1      
+  80   1        TMOD = 0x20;      // 設置計時器1模式2
+  81   1        TH1 = 0xf3;       // fosc=12M,4800bps之初值
+  82   1        TL1 = 0xf3;
+  83   1        TR1 = 1;        // 啟動計時器1
+  84   1        PCON |= 0x80;     // SMOD=1波特率加倍
+  85   1        SM0 = 0;
+  86   1        SM1 = 1;        // 設置串列傳輸模式1
+  87   1        REN = 1;        // 設置接收致能
+  88   1        ES = 1;         // 打開串列中斷開關
+  89   1        EA = 1;         // 打開中斷總開關
+  90   1      
+  91   1        while(1)
+  92   1        {
+  93   2          P0 = 0x0f;                // P0輸出0000 1111 (P37P36...P31P30)  
+  94   2          key_row = P0;           // 自P0讀回按鍵值
+  95   2          key_row = key_row & 0x0f;     // 保留低4位的值(列值)
+  96   2          if (key_row != 0x0f)          // 若不等於0x0f表示有鍵被按下
+  97   2          {
+  98   3            delay_1mS(20);            // 消除按鍵抖動
+  99   3            if (key_row != 0x0f)        // 若不等於0x0f表示確實有鍵被按下
+ 100   3            {
+ 101   4              key_row = P0 & 0x0f;    // 再從P0讀回按鍵值0000 1110(假設S1鍵被按下)
+ 102   4              key_row = key_row | 0xf0; // 將高4位設為1    1111 1110
+ 103   4              P0 = key_row;       // 把1111 1110輸出至P0
+ 104   4              key_col = P0;       // 從P0讀回值      0111 1110
+ 105   4              key_col = key_col & 0xf0; // 取高4位為行值   0111 0000     
+ 106   4              key_row = key_row & 0x0f; // 取高4位為列值   0000 1110
+ 107   4              key = key_row+key_col;    // 相加為鍵值      0111 1110
+ 108   4            }
+ 109   3          }
+ 110   2          else  
+ 111   2            flag = 0;
+ 112   2      
+ 113   2          switch(key)
+ 114   2          {
+ 115   3            case 0x7e : if (flag == 0) {SBUF = 0x30; keyval = 0;} 
+ 116   3                  break;              // key=0x7e表示S0被按下
+C51 COMPILER V8.08   UART                                                                  05/30/2022 11:03:26 PAGE 3   
+
+ 117   3            case 0x7d : if (flag == 0) {SBUF = 0x31; keyval = 1;}
+ 118   3                  break;              // key=0x7d表示S1被按下
+ 119   3            case 0x7b : if (flag == 0) {SBUF = 0x32; keyval = 2;}
+ 120   3                  break;              // key=0x7b表示S2被按下
+ 121   3            case 0x77 : if (flag == 0) {SBUF = 0x33; keyval = 3;}
+ 122   3                  break;              // key=0x77表示S3被按下
+ 123   3            case 0xbe : if (flag == 0) {SBUF = 0x34; keyval = 4;} 
+ 124   3                  break;              // key=0xbe表示S4被按下
+ 125   3            case 0xbd : if (flag == 0) {SBUF = 0x35; keyval = 5;} 
+ 126   3                  break;              // key=0xbd表示S5被按下
+ 127   3            case 0xbb : if (flag == 0) {SBUF = 0x36; keyval = 6;}
+ 128   3                  break;              // key=0xbb表示S6被按下
+ 129   3            case 0xb7 : if (flag == 0) {SBUF = 0x37; keyval = 7;} 
+ 130   3                  break;              // key=0xb7表示S7被按下
+ 131   3            case 0xde : if (flag == 0) {SBUF = 0x38; keyval = 8;} 
+ 132   3                  break;              // key=0xde表示S8被按下
+ 133   3            case 0xdd : if (flag == 0) {SBUF = 0x39; keyval = 9;} 
+ 134   3                  break;              // key=0xdd表示S9被按下
+ 135   3            case 0xdb : if (flag == 0) {SBUF = 0x41; keyval = 10;}
+ 136   3                  break;              // key=0xdb表示S10被按下
+ 137   3            case 0xd7 : if (flag == 0) {SBUF = 0x42; keyval = 11;}
+ 138   3                  break;              // key=0xd7表示S11被按下
+ 139   3            case 0xee : if (flag == 0) {SBUF = 0x43; keyval = 12;}
+ 140   3                  break;              // key=0xee表示S12被按下
+ 141   3            case 0xed : if (flag == 0) {SBUF = 0x44; keyval = 13;}
+ 142   3                  break;              // key=0xed表示S13被按下
+ 143   3            case 0xeb : if (flag == 0) {SBUF = 0x45; keyval = 14;} 
+ 144   3                  break;              // key=0xeb表示S14被按下
+ 145   3            case 0xe7 : if (flag == 0) {SBUF = 0x46; keyval = 15;}
+ 146   3                  break;              // key=0xe7表示S15被按下
+ 147   3          }
+ 148   2          P2 = seg[keyval];   
+ 149   2        }
+ 150   1      }
+ 151          
+ 152          void serial() interrupt 4
+ 153          { 
+ 154   1        if (TI == 1)      // 等待數據傳送完畢
+ 155   1        {
+ 156   2          TI = 0;         // 手動將旗號TI清零
+ 157   2          flag = 1;       // 將旗號flag置1表示收到一個串列數據
+ 158   2        }
+ 159   1        if (RI == 1)      // 等待數據接收完畢
+ 160   1        {
+ 161   2          RI = 0;         // 手動將旗號RI清零
+ 162   2          flag = 1;
+ 163   2          keyval = SBUF-48;
+ 164   2          P2 = seg[keyval];
+ 165   2        }
+ 166   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    481    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     24       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
